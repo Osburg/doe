@@ -6,6 +6,7 @@ import opti
 import pandas as pd
 import scipy as sp
 from formulaic import Formula
+from time import time
 
 
 class JacobianForLogdet:
@@ -86,12 +87,19 @@ class JacobianForLogdet:
         """Computes the full jacobian for the given input."""
 
         # get model matrix X
+        t = time()
         x = np.array(x)
         x = x.reshape(self.n_experiments, self.n_vars)
         X = pd.DataFrame(x, columns=self.vars)
+        with open("gradPrep.txt", "a") as file:
+            file.write(str(time()-t) + "\n")
+        t = time()
         X = self.model.get_model_matrix(X).to_numpy()
-
+        with open("gradModelMatrix.txt", "a") as file:
+            file.write(str(time()-t) + "\n")
+        
         # first part of jacobian
+        t = time()
         J1 = (
             -2
             * X
@@ -115,7 +123,11 @@ class JacobianForLogdet:
         J = J1 * J2
         J = np.sum(J, axis=-1)
 
-        return J.flatten()
+        J = J.flatten()
+        with open("gradEval.txt", "a") as file:
+            file.write(str(time()-t) + "\n")
+
+        return J
 
 
 def default_jacobian_building_block(

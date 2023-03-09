@@ -8,6 +8,7 @@ from cyipopt import minimize_ipopt
 from formulaic import Formula
 from opti.parameter import Continuous
 from scipy.optimize._minimize import standardize_constraints
+from time import time
 
 from doe.jacobian import JacobianForLogdet
 from doe.sampling import DomainUniformSampling, OptiSampling, Sampling
@@ -48,13 +49,22 @@ def get_objective(
     # define objective function
     def objective(x):
         # evaluate model terms
+        t = time()
         A = pd.DataFrame(
             x.reshape(len(x) // D, D), columns=problem_context.problem.inputs.names
         )
+        with open("objPrep.txt", "a") as file:
+            file.write(str(time()-t) + "\n")
+        t = time()
         A = model_formula.get_model_matrix(A)
+        with open("objModelMatrix.txt", "a") as file:
+            file.write(str(time()-t) + "\n")
 
         # compute objective value
+        t = time()
         obj = -logD(A.to_numpy(), delta=delta)
+        with open("objEval.txt", "a") as file:
+            file.write(str(time()-t) + "\n")
         return obj
 
     return objective
@@ -102,7 +112,7 @@ def find_local_max_ipopt(
     if problem.constraints:
         if np.any(
             [
-                isinstance(c, (opti.NonlinearEquality, opti.LinearEquality))
+                isinstance(c, (opti.NonlinearEquality, opti.NonlinearInequality))
                 for c in problem.constraints
             ]
         ):
@@ -181,6 +191,11 @@ def find_local_max_ipopt(
     model_formula = problem_context.get_formula_from_string(
         model_type=model_type, rhs_only=True
     )
+    with open("modelTerms.txt", "a") as file:
+        file.write(str(len(model_formula.terms)) + "\n")
+    with open("optVars.txt", "a") as file:
+        file.write(str(n_experiments*problem.n_inputs) + "\n")
+
     J = JacobianForLogdet(
         problem_context.problem,
         model_formula,
@@ -218,6 +233,7 @@ def find_local_max_ipopt(
     # Do the optimization
     #
 
+    t = time()
     result = minimize_ipopt(
         objective,
         x0=x0,
@@ -225,8 +241,10 @@ def find_local_max_ipopt(
         # "SLSQP" has no deeper meaning here and just ensures correct constraint standardization
         constraints=standardize_constraints(constraints, x0, "SLSQP"),
         options=_ipopt_options,
-        jac=J.jacobian,
+        jac=J.jacobian
     )
+    with open("cyipoptTotal.txt", "a") as file:
+        file.write(str(time()-t) + "\n") 
 
     A = pd.DataFrame(
         result["x"].reshape(n_experiments, problem_context.problem.n_inputs),
