@@ -60,6 +60,8 @@ def get_objective(
     return objective
 
 
+#TODO: problem untersuchen mit constraints! --> nonlinear + linear --> chaos <-- LÖSUNG: IMMER JACOBAIN ANGEBEN
+# TODO: Hinweis, dass jacobian angegeben werden muss
 def find_local_max_ipopt(
     problem: opti.Problem,
     model_type: Union[str, Formula],
@@ -102,7 +104,7 @@ def find_local_max_ipopt(
     if problem.constraints:
         if np.any(
             [
-                isinstance(c, (opti.NonlinearEquality, opti.LinearEquality))
+                isinstance(c, (opti.NonlinearEquality, opti.NonlinearInequality))
                 for c in problem.constraints
             ]
         ):
@@ -287,7 +289,7 @@ def check_constraints_and_domain_respected(
     """
 
     # warn if solutions do not satisfy constraints or bounds
-    tol = np.max([tol, 1e-6])  # only warn for sufficiently large constraint violations
+    tol = np.max([tol, 1e-4])  # only warn for sufficiently large constraint violations
     if problem.constraints is not None:
         constraints_satisfied = np.all(
             [(c(A) <= tol) for c in problem.constraints if not c.is_equality]
