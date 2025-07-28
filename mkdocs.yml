@@ -14,6 +14,7 @@ nav:
     - Tentative NChooseK constraint support: nchoosek_constraint.md
     - Multiple mixture constraints: multiple_mixture_constraints.md
     - Performance compared to modde: modde_comparison.md
+    - hey :)
 
 theme:
   name: material
